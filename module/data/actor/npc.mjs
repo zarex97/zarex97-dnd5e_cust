@@ -1,7 +1,5 @@
-import AttributesField from "./templates/attributes.mjs";
 import CreatureTemplate from "./templates/creature.mjs";
-import DetailsField from "./templates/details.mjs";
-import TraitsField from "./templates/traits.mjs";
+import { AttributesFields, DetailsFields, FormulaField, TraitsFields } from "../fields.mjs";
 
 /**
  * System data definition for NPCs.
@@ -38,8 +36,35 @@ export default class NPCData extends CreatureTemplate {
 
   static defineSchema() {
     return this.mergeSchema(super.defineSchema(), {
-      attributes: new AttributesField({}, {type: this.#actorType, label: "DND5E.Attributes"}),
-      details: new DetailsField({
+      attributes: new foundry.data.fields.SchemaField({
+        ...AttributesFields.attributesFields(),
+        ...AttributesFields.creatureFields(),
+        ac: new foundry.data.fields.SchemaField({
+          flat: new foundry.data.fields.NumberField({integer: true, min: 0, label: "DND5E.ArmorClassFlat"}),
+          calc: new foundry.data.fields.StringField({initial: "default", label: "DND5E.ArmorClassCalculation"}),
+          formula: new FormulaField({deterministic: true, label: "DND5E.ArmorClassFormula"})
+        }),
+        hp: new foundry.data.fields.SchemaField({
+          value: new foundry.data.fields.NumberField({
+            nullable: false, integer: true, min: 0, initial: 10, label: "DND5E.HitPointsCurrent"
+          }),
+          min: new foundry.data.fields.NumberField({
+            nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.HitPointsMin"
+          }),
+          max: new foundry.data.fields.NumberField({
+            nullable: false, integer: true, min: 0, initial: 10, label: "DND5E.HitPointsMax"
+          }),
+          temp: new foundry.data.fields.NumberField({integer: true, initial: 0, min: 0, label: "DND5E.HitPointsTemp"}),
+          tempmax: new foundry.data.fields.NumberField({integer: true, initial: 0, label: "DND5E.HitPointsTempMax"}),
+          formula: new FormulaField({required: true, label: ""})
+        }, {
+          label: "DND5E.HitPoints", validate: d => d.min <= d.max,
+          validationError: "HP minimum must be less than HP maximum"
+        })
+      }, {label: "DND5E.Attributes"}),
+      details: new foundry.data.fields.SchemaField({
+        ...DetailsFields.detailsFields(),
+        ...DetailsFields.creatureFields(),
         type: new foundry.data.fields.SchemaField({
           value: new foundry.data.fields.StringField({required: true, blank: true, label: "DND5E.CreatureType"}),
           subtype: new foundry.data.fields.StringField({required: true, label: "DND5E.CreatureTypeSelectorSubtype"}),
@@ -54,7 +79,7 @@ export default class NPCData extends CreatureTemplate {
           required: true, nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.SpellcasterLevel"
         }),
         source: new foundry.data.fields.StringField({required: true, label: "DND5E.Source"})
-      }, {type: this.#actorType, label: "DND5E.Details"}),
+      }, {label: "DND5E.Details"}),
       resources: new foundry.data.fields.SchemaField({
         legact: new foundry.data.fields.SchemaField({
           value: new foundry.data.fields.NumberField({
@@ -79,7 +104,10 @@ export default class NPCData extends CreatureTemplate {
           })
         }, {label: "DND5E.LairActionLabel"})
       }, {label: "DND5E.Resources"}),
-      traits: new TraitsField({}, {type: this.#actorType, label: "DND5E.Traits"})
+      traits: new foundry.data.fields.SchemaField({
+        ...TraitsFields.traitsFields(),
+        ...TraitsFields.creatureFields()
+      }, {type: this.#actorType, label: "DND5E.Traits"})
     });
   }
 

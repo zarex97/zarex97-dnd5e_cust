@@ -1,7 +1,5 @@
-import AttributesField from "./templates/attributes.mjs";
 import CommonTemplate from "./templates/common.mjs";
-import DetailsField from "./templates/details.mjs";
-import TraitsField from "./templates/traits.mjs";
+import { AttributesFields, DetailsFields, FormulaField, TraitsFields } from "../fields.mjs";
 
 /**
  * System data definition for Vehicles.
@@ -37,7 +35,36 @@ export default class VehicleData extends CommonTemplate {
   static defineSchema() {
     return this.mergeSchema(super.defineSchema(), {
       vehicleType: new foundry.data.fields.StringField({required: true, initial: "water", label: "DND5E.VehicleType"}),
-      attributes: new AttributesField({
+      attributes: new foundry.data.fields.SchemaField({
+        ...AttributesFields.attributesFields(),
+        ac: new foundry.data.fields.SchemaField({
+          flat: new foundry.data.fields.NumberField({integer: true, min: 0, label: "DND5E.ArmorClassFlat"}),
+          calc: new foundry.data.fields.StringField({initial: "flat", label: "DND5E.ArmorClassCalculation"}),
+          formula: new FormulaField({deterministic: true, label: "DND5E.ArmorClassFormula"}),
+          motionless: new foundry.data.fields.StringField({required: true, label: "DND5E.ArmorClassMotionless"})
+        }),
+        hp: new foundry.data.fields.SchemaField({
+          value: new foundry.data.fields.NumberField({
+            nullable: true, integer: true, min: 0, initial: null, label: "DND5E.HitPointsCurrent"
+          }),
+          min: new foundry.data.fields.NumberField({
+            nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.HitPointsMin"
+          }),
+          max: new foundry.data.fields.NumberField({
+            nullable: true, integer: true, min: 0, initial: null, label: "DND5E.HitPointsMax"
+          }),
+          temp: new foundry.data.fields.NumberField({integer: true, initial: 0, min: 0, label: "DND5E.HitPointsTemp"}),
+          tempmax: new foundry.data.fields.NumberField({integer: true, initial: 0, label: "DND5E.HitPointsTempMax"}),
+          dt: new foundry.data.fields.NumberField({
+            required: true, integer: true, min: 0, label: "DND5E.DamageThreshold"
+          }),
+          mt: new foundry.data.fields.NumberField({
+            required: true, integer: true, min: 0, label: "DND5E.VehicleMishapThreshold"
+          })
+        }, {
+          label: "DND5E.HitPoints", validate: d => d.min <= d.max,
+          validationError: "HP minimum must be less than HP maximum"
+        }),
         action: new foundry.data.fields.SchemaField({
           stations: new foundry.data.fields.BooleanField({required: true, label: "DND5E.VehicleActionStations"}),
           value: new foundry.data.fields.NumberField({
@@ -61,9 +88,14 @@ export default class VehicleData extends CommonTemplate {
             required: true, nullable: false, integer: true, initial: 0, min: 0, label: "DND5E.VehicleCargoCapacity"
           })
         }, {label: "DND5E.VehicleCargoCrew"})
-      }, {type: this.#actorType, label: "DND5E.Attributes"}),
-      details: new DetailsField({}, {type: this.#actorType, label: "DND5E.Details"}),
-      traits: new TraitsField({
+      }, {label: "DND5E.Attributes"}),
+      details: new foundry.data.fields.SchemaField({
+        ...DetailsFields.detailsFields()
+      }, {label: "DND5E.Details"}),
+      traits: new foundry.data.fields.SchemaField({
+        ...TraitsFields.traitsFields({size: "lg", di: ["poison", "psychic"], ci: [
+          "blinded", "charmed", "deafened", "frightened", "paralyzed", "petrified", "poisoned", "stunned", "unconscious"
+        ]}),
         dimensions: new foundry.data.fields.StringField({required: true, label: "DND5E.Dimensions"})
       }, {type: this.#actorType, label: "DND5E.Traits"}),
       cargo: new foundry.data.fields.SchemaField({

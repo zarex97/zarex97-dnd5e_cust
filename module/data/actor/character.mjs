@@ -1,8 +1,5 @@
-import { makeSimpleTrait } from "../fields.mjs";
-import AttributesField from "./templates/attributes.mjs";
+import { FormulaField, AttributesFields, DetailsFields, TraitsFields } from "../fields.mjs";
 import CreatureTemplate from "./templates/creature.mjs";
-import DetailsField from "./templates/details.mjs";
-import TraitsField from "./templates/traits.mjs";
 
 /**
  * System data definition for Characters.
@@ -42,7 +39,30 @@ export default class CharacterData extends CreatureTemplate {
 
   static defineSchema() {
     return this.mergeSchema(super.defineSchema(), {
-      attributes: new AttributesField({
+      attributes: new foundry.data.fields.SchemaField({
+        ...AttributesFields.attributesFields(),
+        ...AttributesFields.creatureFields(),
+        ac: new foundry.data.fields.SchemaField({
+          flat: new foundry.data.fields.NumberField({integer: true, min: 0, label: "DND5E.ArmorClassFlat"}),
+          calc: new foundry.data.fields.StringField({initial: "default", label: "DND5E.ArmorClassCalculation"}),
+          formula: new FormulaField({deterministic: true, label: "DND5E.ArmorClassFormula"})
+        }),
+        hp: new foundry.data.fields.SchemaField({
+          value: new foundry.data.fields.NumberField({
+            nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.HitPointsCurrent"
+          }),
+          min: new foundry.data.fields.NumberField({
+            nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.HitPointsMin"
+          }),
+          max: new foundry.data.fields.NumberField({
+            nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.HitPointsMax"
+          }),
+          temp: new foundry.data.fields.NumberField({integer: true, initial: 0, min: 0, label: "DND5E.HitPointsTemp"}),
+          tempmax: new foundry.data.fields.NumberField({integer: true, initial: 0, label: "DND5E.HitPointsTempMax"})
+        }, {
+          label: "DND5E.HitPoints", validate: d => d.min <= d.max,
+          validationError: "HP minimum must be less than HP maximum"
+        }),
         death: new foundry.data.fields.SchemaField({
           success: new foundry.data.fields.NumberField({
             required: true, nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.DeathSaveSuccesses"
@@ -55,8 +75,10 @@ export default class CharacterData extends CreatureTemplate {
           required: true, nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.Exhaustion"
         }),
         inspiration: new foundry.data.fields.BooleanField({required: true, label: "DND5E.Inspiration"})
-      }, {type: this.#actorType, label: "DND5E.Attributes"}),
-      details: new DetailsField({
+      }, {label: "DND5E.Attributes"}),
+      details: new foundry.data.fields.SchemaField({
+        ...DetailsFields.detailsFields(),
+        ...DetailsFields.creatureFields(),
         background: new foundry.data.fields.StringField({required: true, label: "DND5E.Background"}),
         originalClass: new foundry.data.fields.StringField({required: true, label: "DND5E.ClassOriginal"}),
         xp: new foundry.data.fields.SchemaField({
@@ -78,12 +100,14 @@ export default class CharacterData extends CreatureTemplate {
         ideal: new foundry.data.fields.StringField({required: true, label: "DND5E.Ideals"}),
         bond: new foundry.data.fields.StringField({required: true, label: "DND5E.Bonds"}),
         flaw: new foundry.data.fields.StringField({required: true, label: "DND5E.Flaws"})
-      }, {type: this.#actorType, label: "DND5E.Details"}),
-      traits: new TraitsField({
-        weaponProf: makeSimpleTrait({label: "DND5E.TraitWeaponProf"}),
-        armorProf: makeSimpleTrait({label: "DND5E.TraitArmorProf"}),
-        toolProf: makeSimpleTrait({label: "DND5E.TraitToolProf"})
-      }, {type: this.#actorType, label: "DND5E.Traits"}),
+      }, {label: "DND5E.Details"}),
+      traits: new foundry.data.fields.SchemaField({
+        ...TraitsFields.traitsFields(),
+        ...TraitsFields.creatureFields(),
+        weaponProf: TraitsFields.makeSimpleTrait({label: "DND5E.TraitWeaponProf"}),
+        armorProf: TraitsFields.makeSimpleTrait({label: "DND5E.TraitArmorProf"}),
+        toolProf: TraitsFields.makeSimpleTrait({label: "DND5E.TraitToolProf"})
+      }, {label: "DND5E.Traits"}),
       resources: new foundry.data.fields.SchemaField({
         primary: makeResourceField({label: "DND5E.ResourcePrimary"}),
         secondary: makeResourceField({label: "DND5E.ResourceSecondary"}),

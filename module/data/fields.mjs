@@ -242,27 +242,155 @@ export class MappingField extends foundry.data.fields.ObjectField {
   /** @override */
   initialize(value, model, options={}) {
     if ( !value ) return value;
-    Object.values(value).forEach(v => this.model.initialize(v, model, options));
-    return value;
+    return Object.entries(value).reduce((obj, [k, v]) => {
+      obj[k] = this.model.initialize(v, model, options);
+      return obj;
+    }, {});
   }
 }
 
 /* -------------------------------------------- */
 
-/**
- * Data structure for a standard actor trait.
- *
- * @typedef {object} SimpleTraitData
- * @property {Set<string>} value  Keys for currently selected traits.
- * @property {string} custom      Semicolon-separated list of custom traits.
- */
+export class AttributesFields {
+  static attributesFields() {
+    return {
+      init: new foundry.data.fields.SchemaField({
+        value: new foundry.data.fields.NumberField({
+          nullable: false, integer: true, initial: 0, label: "DND5E.Initiative"
+        }),
+        bonus: new foundry.data.fields.NumberField({
+          nullable: false, integer: true, initial: 0, label: "DND5E.InitiativeBonus"
+        })
+      }, { label: "DND5E.Initiative" }),
+      movement: new foundry.data.fields.SchemaField({
+        burrow: new foundry.data.fields.NumberField({
+          nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.MovementBurrow"
+        }),
+        climb: new foundry.data.fields.NumberField({
+          nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.MovementClimb"
+        }),
+        fly: new foundry.data.fields.NumberField({
+          nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.MovementFly"
+        }),
+        swim: new foundry.data.fields.NumberField({
+          nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.MovementSwim"
+        }),
+        walk: new foundry.data.fields.NumberField({
+          nullable: false, integer: true, min: 0, initial: 30, label: "DND5E.MovementWalk"
+        }),
+        units: new foundry.data.fields.StringField({initial: "ft", label: "DND5E.MovementUnits"}),
+        hover: new foundry.data.fields.BooleanField({label: "DND5E.MovementHover"})
+      }, {label: "DND5E.Movement"})
+    };
+  }
 
-/**
- * Produce the schema field for a simple trait.
- * @param {object} [schemaOptions={}]  Options passed to the outer schema.
- * @param {string[]} [initial={}]      The initial value for the value set.
- * @returns {SchemaField}
- */
+  /* -------------------------------------------- */
+
+  static creatureFields() {
+    return {
+      attunement: new foundry.data.fields.SchemaField({
+        max: new foundry.data.fields.NumberField({
+          required: true, nullable: false, integer: true, min: 0, initial: 3, label: "DND5E.AttunementMax"
+        })
+      }, {label: "DND5E.Attunement"}),
+      senses: new foundry.data.fields.SchemaField({
+        darkvision: new foundry.data.fields.NumberField({
+          required: true, nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.SenseDarkvision"
+        }),
+        blindsight: new foundry.data.fields.NumberField({
+          required: true, nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.SenseBlindsight"
+        }),
+        tremorsense: new foundry.data.fields.NumberField({
+          required: true, nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.SenseTremorsense"
+        }),
+        truesight: new foundry.data.fields.NumberField({
+          required: true, nullable: false, integer: true, min: 0, initial: 0, label: "DND5E.SenseTruesight"
+        }),
+        units: new foundry.data.fields.StringField({required: true, initial: "ft", label: "DND5E.SenseUnits"}),
+        special: new foundry.data.fields.StringField({required: true, label: "DND5E.SenseSpecial"})
+      }, {label: "DND5E.Senses"}),
+      spellcasting: new foundry.data.fields.StringField({
+        required: true, blank: true, initial: "int", label: "DND5E.SpellAbility"
+      })
+    };
+  }
+}
+
+/* -------------------------------------------- */
+
+export class DetailsFields {
+  static detailsFields() {
+    return {
+      biography: new foundry.data.fields.SchemaField({
+        value: new foundry.data.fields.HTMLField({label: "DND5E.Biography"}),
+        public: new foundry.data.fields.HTMLField({label: "DND5E.BiographyPublic"})
+      }, {label: "DND5E.Biography"})
+    };
+  }
+
+  /* -------------------------------------------- */
+
+  static creatureFields() {
+    return {
+      alignment: new foundry.data.fields.StringField({required: true, label: "DND5E.Alignment"}),
+      race: new foundry.data.fields.StringField({required: true, label: "DND5E.Race"})
+    };
+  }
+}
+
+/* -------------------------------------------- */
+
+export class TraitsFields {
+  static traitsFields({size="med", di=[], ci=[]}={}) {
+    return {
+      size: new foundry.data.fields.StringField({
+        required: true, initial: size, label: "DND5E.Size"
+      }),
+      di: makeSimpleTrait({label: "DND5E.DamImm"}, di), // TODO: Add "bypasses" here
+      dr: makeSimpleTrait({label: "DND5E.DamRes"}), // TODO: Add "bypasses" here
+      dv: makeSimpleTrait({label: "DND5E.DamVuln"}), // TODO: Add "bypasses" here
+      ci: makeSimpleTrait({label: "DND5E.ConImm"}, ci)
+    };
+  }
+
+  /* -------------------------------------------- */
+
+  static creatureFields() {
+    return {
+      languages: makeSimpleTrait({label: "DND5E.Languages"})
+    };
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Data structure for a standard actor trait.
+   *
+   * @typedef {object} SimpleTraitData
+   * @property {Set<string>} value  Keys for currently selected traits.
+   * @property {string} custom      Semicolon-separated list of custom traits.
+   */
+
+  /**
+   * Produce the schema field for a simple trait.
+   * @param {object} [schemaOptions={}]  Options passed to the outer schema.
+   * @param {string[]} [initial={}]      The initial value for the value set.
+   * @returns {SchemaField}
+   */
+  static makeSimpleTrait(schemaOptions={}, initial=[]) {
+    return new foundry.data.fields.SchemaField({
+      value: new foundry.data.fields.SetField(
+        new foundry.data.fields.StringField({blank: false}), {label: "DND5E.TraitsChosen", initial}
+      ),
+      custom: new foundry.data.fields.StringField({required: true, label: "DND5E.Special"})
+    }, schemaOptions);
+  }
+}
+
+/* -------------------------------------------- */
+
+
+
 export function makeSimpleTrait(schemaOptions={}, initial=[]) {
   return new foundry.data.fields.SchemaField({
     value: new foundry.data.fields.SetField(
